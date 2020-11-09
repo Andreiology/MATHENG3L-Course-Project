@@ -1,0 +1,286 @@
+---
+title: Exploratory Engineering Data Analysis Course Project using R-Language and 'Tidyverse'
+  Package
+author: "Rodriguez, L.A.G."
+date: "October 29, 2018"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+This R Markdown document presents the data analytics of the Spotify 2017 Daily World Rankings dataset as a final requirement for the Engineering Data Analysis (Lab) course. This document is passed to Engr. Timothy M. Amado of the Technological University of the Philippines - Manila. This aims to answer the following exploratory data analysis questions:
+
+1. Who are the top 20 most streamed artist in the Philippines in 2017? Display the number of streams in millions?
+2. What are the top 20 songs that appeared the most in the Daily World Rankings in the Philippines?
+3. Who are the top 20 artist that has the most number of songs in the Daily World Rankings in the Philippines?
+4. Who are the top 20 artist that has the most number of **unique** songs in the Daily World Rankings in the Philippines? What do you think is the reason for this? Give insights with supporting details. (Hint: Use scatterplots to understand this case)
+5. What are the top 20 most streamed songs (display the artist too) in the Philippines in 2017? Display the number of streams in millions.
+
+## Preliminary Procedures
+1. Download the dataset using this link: https://1fichier.com/?30gggxuypwuvigoeqo0p
+2. Set your working directory and unzip your file on that location.
+3. Load the tidyverse library, read the csv file and store it on *spotify_data* variable.
+
+```{r}
+library(tidyverse)
+spotify_data <- read_csv("data.csv")
+```
+
+#1. Who are the top 20 most streamed artist in the Philippines in 2017? Display the number of streams in millions?
+
+First, we need to wrangle the code.
+
+```{r}
+spotify_data %>% 
+  filter (Region == "ph") %>%
+  group_by(Artist) %>% 
+  summarize(Total_Streams = sum(Streams/1E6)) %>%
+  arrange(desc(Total_Streams)) %>%
+  head(20)
+```
+
+The data we wrangle has shown that Ed Sheeran is the leading artist with the most streamed songs.
+
+Next, we store the data to a variable.
+
+```{r}
+question_1_edalab <- spotify_data %>% 
+  filter (Region == "ph") %>%
+  group_by(Artist) %>% 
+  summarize(Total_Streams = sum(Streams/1E6)) %>%
+  arrange(desc(Total_Streams)) %>%
+  head(20)
+```
+
+We arrange the entries based on the total streams.
+
+```{r}
+question_1_edalab$Artist <- factor(question_1_edalab$Artist, levels = question_1_edalab$Artist[order(question_1_edalab$Total_Streams)])
+```
+
+We visualize the data using ggplot.
+
+```{r}
+ggplot(data = question_1_edalab, aes(x = Artist, y = Total_Streams))+
+ geom_col(aes(x = Artist, y = Total_Streams, fill = Artist))+
+    theme_light()+
+    theme(legend.position = "none")+
+    coord_flip()+
+    labs(
+        title = "Top 20 Most Streamed Artist in the Philippines for the Year 2017",
+        x = "Artist/s",
+        y = "Total Number of Streams in Millions",
+        caption = "Source: Spotify")
+
+```
+
+#2.What are the top 20 songs that appeared the most in the Daily World Rankings in the Philippines?
+
+To answer this question, we wrangle the data first.
+
+```{r}
+spotify_data %>%
+  filter(Region == "ph") %>%
+  group_by(`Track Name`) %>%
+  summarize(Song_Frequency = length(Position)) %>%
+  arrange(desc(Song_Frequency)) %>%
+  head(20)
+```
+
+As we can see, most of the tracks came with the same number of frequency.
+
+Now, we store the data in a variable.
+
+```{r}
+question_2_edalab <- spotify_data %>%
+  filter(Region == "ph") %>%
+  group_by(`Track Name`) %>%
+  summarize(Song_Frequency = length(Position)) %>%
+  arrange(desc(Song_Frequency))%>%
+  head(20)
+```
+
+Next, we graph the output data using ggplot.
+
+```{r}
+
+ggplot(data = question_2_edalab, aes(x = `Track Name`, y = `Song_Frequency`))+
+    coord_flip()+
+    geom_segment(color = "black", aes(x = `Track Name`, xend = `Track Name`, y = 0, yend = `Song_Frequency`))+
+    theme_light()+
+    geom_point(size = 2, color = "red")+
+    theme(axis.text.x=element_text(angle=70,vjust=0.6))+
+    labs(
+        title = "Top 20 Songs that appeared the most 
+        in the Daily World Rankings (Philippines)",
+        caption = "Source: Spotify",
+        y = "No. of times appeared"
+    )
+```
+
+#3. Top 20 Artist That has the Most Number of Songs in the Daily World Rankings in the Philippines
+
+You know what to do, wrangle the data first.
+
+```{r}
+spotify_data %>%
+  filter(Region == "ph") %>%
+  group_by(Artist) %>%
+  summarize(`Number of songs` = length(`Track Name`)) %>%
+  arrange(desc(`Number of songs`)) %>%
+  head(20)
+```
+
+It seems that Ed Sheeran has dominated again. Heads up! Sheerios!
+
+Now, store it in a variable.
+
+```{r}
+question_3_edalab<- spotify_data %>%
+  filter(Region == "ph") %>%
+  group_by(Artist) %>%
+  summarize(`Number of songs`= length(`Track Name`)) %>%
+  arrange(desc(`Number of songs`)) %>%
+  head(20)
+```   
+
+Draw the plot.
+
+```{r}
+ggplot(question_3_edalab, aes(x = Artist, y = `Number of songs`))+
+  geom_point(size=3)+
+  geom_segment(aes(x=Artist, xend=Artist,y=0,yend=`Number of songs`))+
+  labs(
+        title = "Top 20 Artist that has the Most Number of Songs",
+        subtitle = "Daily World Rankings in the Philippines",
+        caption= "Source: Spotify",
+        x = "Artists",
+        y = "Total Number of Songs Appeared")+
+  theme(axis.text.x=element_text(angle=70,vjust=0.6))
+```
+
+#4. Who are the top 20 artist that has the most number of **unique** songs in the Daily World Rankings in the Philippines? What do you think is the reason for this? Give insights with supporting details. (Hint: Use scatterplots to understand this case)
+
+You know the drill, we wrangle.
+
+```{r}
+spotify_data %>%
+    filter(Region == "ph") %>%
+    group_by(Artist) %>%
+    summarize(Unique_Songs = length(unique(`Track Name`))) %>%
+    arrange(desc(Unique_Songs)) %>%
+    head(20)
+```
+
+The wrangled data shows that Linkin Park, Coldplay (Heads up! Coldplayers!), Ed Sheeran, Taylor Swift, and Sam Smith has dominated the top 5 artist/s or bands that has the most number of unique songs in the Daily World Rankings (PH).
+
+Now, we store the data to prepare for its visualization.
+
+```{r}
+question_4_edalab <- spotify_data %>%
+   filter(Region == "ph") %>%
+    group_by(Artist) %>%
+    summarize(Unique_Songs = length(unique(`Track Name`))) %>%
+    arrange(desc(Unique_Songs)) %>%
+    head(20)
+```
+
+It looks like the Rock Band Linkin Park has the most number of unique songs in the Daily World Rankings in the Philippines.
+
+Now, we plot the data we wrangled but before we plot it, we need to order it first.
+
+```{r}
+question_4_edalab$Artist <- factor(question_4_edalab$Artist, levels = question_4_edalab$Artist[order(question_4_edalab$Unique_Songs)])
+```
+
+Now, let's plot it.
+
+```{r}
+ggplot(data = question_4_edalab, aes(x = Artist, y = Unique_Songs))+
+  geom_col(aes(fill = Artist))+
+    coord_flip()+
+    theme_classic()+
+    theme(legend.position = "none")+
+    labs(
+        x = "Artist/s or Bands",
+        y = "No. of Unique Songs",
+        title = "The Top 20 Artist/s That Has The Most Number Of UNIQUE Songs",
+        subtitle = "(Philippine's Daily World Rankings)",
+        caption = "Source: Spotify"
+        
+    )
+```
+
+Now the reason why Linkin Park has the most number of Unique Songs, the year 2017 is the year that Linkin Park's vocalist **Chester Bennington** died and also the year where they released their brand new album entitled **One More Light** and their songs is played and played by rock fans in the Philippines as a tribute. As for Coldplay, 2017 is also the year when Coldplay released their EP entitled "Kaleidoscope" and their concert in the Philippines. For Taylor Swift, she releases her new album entitled "reputation" on the same year. But we will focus on Linkin Park since they are the one on the top.
+
+Now, to visually explain this. We will do another data wrangling and ggplotting.
+
+```{r}
+question_4_1_edalab <- spotify_data %>%
+   filter(Region == "ph") %>%
+    group_by(Artist) %>%
+    summarize(Unique_Songs = length(unique(`Track Name`))) %>%
+    arrange(desc(Unique_Songs)) %>%
+    head(1)
+
+artist_data <- question_4_1_edalab$Artist
+
+question_4_1_edalab <- spotify_data %>%
+  filter(Region == "ph", Artist %in% artist_data) %>%
+  group_by(Artist) %>%
+  mutate(Unique_Songs = length(unique(`Track Name`))) %>%
+  arrange(desc(Unique_Songs)) %>%
+  select(everything(), -Region,-Position,-URL)
+
+#Plotting the Streams of Linkin Park
+ggplot(question_4_1_edalab,aes(x = Date, y = Streams)) +
+  geom_point() +
+  theme_light() +
+  theme(legend.position = "none")
+  
+```
+
+Most of the streams were noticed based on the plot was on July 20, 2017; the day the lead vocalist of Linkin Park **Chester Bennington** died.
+
+#5. Top 20 Most Streamed Songs in the Philippines (2017)
+
+Wiggle and wrangle the data.
+
+```{r}
+spotify_data %>% 
+    filter(Region == "ph", Date < '2018-01-01') %>%
+    group_by(Artist,`Track Name`) %>%
+    summarise(Total_Streams=sum(Streams/1E6)) %>%
+    arrange(desc(Total_Streams)) %>%
+    head(20)
+```
+
+ED SHEERAN has dominated again with his hit single THE SHAPE OF YOU.
+
+Now, store it in a variable.
+
+```{r}
+question_5_edalab <- spotify_data %>% 
+    filter(Region == "ph", Date < '2018-01-01') %>%
+    group_by(Artist,`Track Name`) %>%
+    summarise(Total_Streams=sum(Streams/1E6)) %>%
+    arrange(desc(Total_Streams)) %>%
+    head(20)
+```
+
+Now, plot the data.
+
+```{r}
+ggplot(question_5_edalab, aes(x=reorder(strtrim(`Track Name`,27), Total_Streams), y=Total_Streams, fill= Artist)) +
+  geom_bar(stat="identity")+
+  coord_flip()+
+  labs(
+      title= "Top 20 Most Streamed Songs",
+      subtitle= "Philippines",
+      caption="Source: Spotify",
+      x="Track Name",
+      y="Total Streams (in millions)"
+  )
+```
+
